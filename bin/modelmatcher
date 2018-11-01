@@ -6,7 +6,7 @@ import sys
 from traceback import print_last
 from Bio import AlignIO
 
-from models import RateMatrix
+from modelmatcher.models import RateMatrix
 
 _ALPHABET = 'ARNDCQEGHILKMFPSTWYV'
 
