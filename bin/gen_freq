@@ -3,7 +3,7 @@ import argparse
 import sys
 sys.path.insert(0, '../src/')
 
-from models import RateMatrix
+from modelmatcher.models import RateMatrix
 
 def main():
     ap = argparse.ArgumentParser(description='Get the implied AA frequences for a stored matrix suitable for seq-gen input')
