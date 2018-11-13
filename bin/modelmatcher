@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import sys
-from traceback import print_last
+import numpy as np
+from console_progressbar import ProgressBar
 from Bio import AlignIO
 
 from modelmatcher.models import RateMatrix
@@ -19,6 +21,7 @@ def guess_format(filename):
         if first_line[:15] == '# STOCKHOLM 1.0':
             return 'stockholm'
         elif first_line == 'CLUSTAL':
+
             return 'clustal'
         elif first_line[0] == '>':
             return 'fasta'
@@ -46,45 +49,63 @@ def read_alignment(file, input_format):
     if file == '-':
         file = sys.stdin        # Start reading from stdin if "magic filename"
     elif input_format == 'guess':
-        seqtype = guess_format(file)
+        input_format = guess_format(file)
     alignment = AlignIO.read(file, input_format)
     return alignment
 
 
-import numpy as np
 
-def create_count_matrix(s1, s2):
-    return_matrix = np.zeros((20,20))
-    f_vec = np.zeros(20)
+def add_to_count_matrix(m, s1, s2):
+    '''
+    In: Initialised 20x20 matrix m and a 20-element frequency matric.
 
+    The function adds amino acid pair counts to m.
+    '''
+    for i, j in zip(s1, s2):
+        if i and j:
+            m[i][j] = m[i][j] + 1
+
+
+import itertools as it
+def msa_to_count_matrix(msa, verbose=False):
+    '''
+    Return a normalised count matrix, $F$,  and a frequency vector, 
+    $\pi$, based on the input MSA.
+    '''
+    # Prepare to translate aa sequences to integer lists
     alphabet_dictionary = {}
     for i, letter in enumerate(_ALPHABET):
         alphabet_dictionary[letter] = i
 
-    for a, b in zip(s1, s2):
-        try:
-            i = alphabet_dictionary[b]
-            j = alphabet_dictionary[a]
-            return_matrix[i][j] = return_matrix[i][j] + 1
-            f_vec[i] += 1
-            f_vec[j] += 1
-        except KeyError as e:
-            if a not in '.-' or b not in '.-':
-                raise e
-            # else we just continue because we don't care about indels
-
-    return return_matrix, f_vec
-
-
-import itertools as it
-def msa_to_count_matrix(msa):
-    sequences = map(lambda r: r.seq, msa)
+    sequences = []
+    for s in map(lambda r: r.seq, msa):
+        sequences.append(list(map(lambda c: alphabet_dictionary.get(c, None), s)))
+        
+    if verbose:
+        n_seqs = len(sequences)
+        n_pairs = n_seqs * (n_seqs - 1) / 2
+        pb = ProgressBar(total=n_pairs, prefix='Counting AA pairs. Progress:', suffix='', decimals=0, length=50, fill='+', zfill=' ')
+        
     m_sum = np.zeros((20, 20))
-    f_vec = np.zeros(20)
+    i=0
     for a, b in it.combinations(sequences, 2):
-        m, f = create_count_matrix(a, b)
-        np.add(m_sum, m, m_sum)  # Add m_sum and m, and put the result in m_sum
-        np.add(f_vec, f, f_vec)
+        add_to_count_matrix(m_sum, a, b)
+        if verbose:
+            i += 1
+            pb.print_progress_bar(i)
+
+    # Now compute the aa frequency vector
+    if verbose:
+        pb = ProgressBar(total=n_seqs, prefix='Counting AA freqs. Progress:', suffix='', decimals=0, length=50, fill='+', zfill=' ')
+        i = 0
+    f_vec = np.zeros(20)
+    for s in sequences:
+        if verbose:
+            i+=1
+            pb.print_progress_bar(i)
+        for aa in s:
+            f_vec[aa] += 1
+
     symmetric = np.add(m_sum, m_sum.T)
     scale = np.sum(f_vec)
     return symmetric, f_vec/scale
@@ -125,17 +146,41 @@ def apply_models(m, aa_freqs):
 
     return diffs
 
-def main(filename):
-    msa = read_alignment(filename, 'phylip')
-    N, amino_acid_freqs = msa_to_count_matrix(msa)
-    F = N / np.sum(N)
+def main(args):
+    if args.verbose:
+        print('Reading MSA', file=sys.stderr)
+    msa = read_alignment(args.infile, args.format)
+    N, amino_acid_freqs = msa_to_count_matrix(msa, args.verbose)
+    n_observations = int(np.sum(N))
+    F = N / n_observations
+    if args.verbose:
+        print('Testing models', file=sys.stderr)    
     diffs = apply_models(F, amino_acid_freqs)
-    for name, d in sorted(diffs, key = lambda d: d[1]):
-        print(f'{name:12} {d:>8.3f}')
+    if args.json:
+        json_data = {"n_observations": n_observations,
+                     "infile": args.infile,
+                     "n_seqs": len(msa),
+                     "model_ranking": sorted(diffs, key = lambda d: d[1])
+                     }
+        json.dump(json_data, sys.stdout)
+    else:
+        for name, d in sorted(diffs, key = lambda d: d[1]):
+            print(f'{name:12} {d:>8.3f}')
 
 if __name__ == '__main__':
     # For convenience, set some print options for numpy
     np.set_printoptions(precision=3)
     np.set_printoptions(suppress=True)
     np.set_printoptions(linewidth=200)
-    main(sys.argv[1])
+
+    ap = argparse.ArgumentParser(description='Suggest model based on an MSA without using likelihood calculations.')
+    ap.add_argument('infile',
+                    help='A multi-sequence alignment.')  # It is easy to change to handle Fasta, Clustal, Stockholm, Nexus
+    ap.add_argument('-f', '--format', choices=['guess', 'fasta', 'clustal', 'nexus', 'phylip', 'stockholm'], default='guess',
+                    help="Specify what sequence type to assume. Be specific if the file is not recognized automatically. When reading from stdin, the format is always guessed to be FASTA. Default: %(default)s")
+    ap.add_argument('-j', '--json', action='store_true',
+                    help='Output the information in JSON format, for easier later parsing.')
+    ap.add_argument('--verbose', action='store_true',
+                    help='Output progress information')
+    args = ap.parse_args()
+    main(args)
