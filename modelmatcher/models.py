@@ -14,6 +14,7 @@ class RateMatrix:
         self.R = None
         self.Q = None
         self.freq = None
+        self.name = name
 
         # We also store the eigenvectors of Q
         self.right_eigenvectors = None
@@ -43,7 +44,10 @@ class RateMatrix:
         return models
 
     def get_name(self):
-        return type(self).__name__
+        if self.name:
+            return self.name
+        else:
+            return type(self).__name__
         
     def get_q(self):
         return self.Q
