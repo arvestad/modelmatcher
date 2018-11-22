@@ -163,24 +163,29 @@ def main(args):
                      "model_ranking": sorted(diffs, key = lambda d: d[1])
                      }
         json.dump(json_data, sys.stdout)
+        print()
     else:
         for name, d in sorted(diffs, key = lambda d: d[1]):
             print(f'{name:12} {d:>8.3f}')
 
 if __name__ == '__main__':
-    # For convenience, set some print options for numpy
-    np.set_printoptions(precision=3)
-    np.set_printoptions(suppress=True)
-    np.set_printoptions(linewidth=200)
+    try:
+        # For convenience, set some print options for numpy
+        np.set_printoptions(precision=3)
+        np.set_printoptions(suppress=True)
+        np.set_printoptions(linewidth=200)
 
-    ap = argparse.ArgumentParser(description='Suggest model based on an MSA without using likelihood calculations.')
-    ap.add_argument('infile',
-                    help='A multi-sequence alignment.')  # It is easy to change to handle Fasta, Clustal, Stockholm, Nexus
-    ap.add_argument('-f', '--format', choices=['guess', 'fasta', 'clustal', 'nexus', 'phylip', 'stockholm'], default='guess',
-                    help="Specify what sequence type to assume. Be specific if the file is not recognized automatically. When reading from stdin, the format is always guessed to be FASTA. Default: %(default)s")
-    ap.add_argument('-j', '--json', action='store_true',
-                    help='Output the information in JSON format, for easier later parsing.')
-    ap.add_argument('--verbose', action='store_true',
-                    help='Output progress information')
-    args = ap.parse_args()
-    main(args)
+        ap = argparse.ArgumentParser(description='Suggest model based on an MSA without using likelihood calculations.')
+        ap.add_argument('infile',
+                        help='A multi-sequence alignment.')  # It is easy to change to handle Fasta, Clustal, Stockholm, Nexus
+        ap.add_argument('-f', '--format', choices=['guess', 'fasta', 'clustal', 'nexus', 'phylip', 'stockholm'], default='guess',
+                        help="Specify what sequence type to assume. Be specific if the file is not recognized automatically. When reading from stdin, the format is always guessed to be FASTA. Default: %(default)s")
+        ap.add_argument('-j', '--json', action='store_true',
+                        help='Output the information in JSON format, for easier later parsing.')
+        ap.add_argument('--verbose', action='store_true',
+                        help='Output progress information')
+        args = ap.parse_args()
+        main(args)
+    except KeyboardInterrupt:
+        sys.exit()
+
