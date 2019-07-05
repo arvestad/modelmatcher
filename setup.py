@@ -1,5 +1,5 @@
 import setuptools
-import sys 
+import sys
 
 with open("README.md", "r") as fh:
     at_top = True
@@ -14,7 +14,7 @@ with open("README.md", "r") as fh:
 
 with open('modelmatcher/version.py') as fh:
     exec(fh.read())
-    
+
 if sys.version_info.major < 3:
     sys.exit('\n'
              'Sorry, Python 2 is not supported\n'
@@ -23,14 +23,14 @@ if sys.version_info.major < 3:
 
 elif sys.version_info.minor < 2:
     sys.exit('\nSorry, Python < 3.2 is not supported\n')
-    
+
 setuptools.setup(
     name="modelmatcher",
     version=__version__,
     author="Lars Arvestad",
     author_email="arve@math.su.se",
     description="Rapid identification of sequence evolution models",
-    scripts = ['bin/modelmatcher', 'bin/gen_q', 'bin/gen_freq', 'bin/modelprojector'],
+    scripts = ['bin/modelmatcher', 'bin/gen_q', 'bin/gen_freq', 'bin/modelprojector', 'bin/combine_q'],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/arvestad/modelmatcher", # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  To be created!
@@ -49,5 +49,3 @@ setuptools.setup(
         "Topic :: Scientific/Engineering :: Bio-Informatics",
     ),
 )
-
-
