@@ -9,6 +9,7 @@ from console_progressbar import ProgressBar
 from Bio import AlignIO
 
 from modelmatcher.models import RateMatrix
+from modelmatcher.model_io import read_model
 
 _ALPHABET = 'ARNDCQEGHILKMFPSTWYV'
 
@@ -129,20 +130,19 @@ def diagonalize_with_model(m, Q):
     off_diagonal = prod * off_diagonal_elems
     return np.sum(np.absolute(off_diagonal)) # Measure the deviation as sum of off-diagonal elements
     
-def apply_models(m, aa_freqs):
+def apply_models(m, q=None):
     '''
     Try eigenvectors of standard rate matrices aginst the count matrix m
     '''
-    matrices= RateMatrix.get_all_models()
+    matrices= list(RateMatrix.get_all_models())
     diffs = []
+
+    if matrices:
+        matrices.append(q)
+
     for Q in matrices:
         diff = diagonalize_with_model(m, Q)
         diffs.append((Q.get_name(), diff))
-
-        # Now Q+F
-        # Q.update_freq(aa_freqs)
-        # diff = diagonalize_with_model(m, Q)
-        # diffs.append((Q.get_name() + '+F', diff))
 
     return diffs
 
@@ -150,12 +150,20 @@ def main(args):
     if args.verbose:
         print('Reading MSA', file=sys.stderr)
     msa = read_alignment(args.infile, args.format)
+
     N, amino_acid_freqs = msa_to_count_matrix(msa, args.verbose)
     n_observations = int(np.sum(N))
     F = N / n_observations
     if args.verbose:
         print('Testing models', file=sys.stderr)    
-    diffs = apply_models(F, amino_acid_freqs)
+
+    if args.model:
+        with open(args.model) as h:
+            extra_model = read_model(h, args.model)
+        diffs = apply_models(F, extra_model)
+    else:
+        diffs = apply_models(F)
+
     if args.json:
         json_data = {"n_observations": n_observations,
                      "infile": args.infile,
@@ -180,6 +188,8 @@ if __name__ == '__main__':
                         help='A multi-sequence alignment.')  # It is easy to change to handle Fasta, Clustal, Stockholm, Nexus
         ap.add_argument('-f', '--format', choices=['guess', 'fasta', 'clustal', 'nexus', 'phylip', 'stockholm'], default='guess',
                         help="Specify what sequence type to assume. Be specific if the file is not recognized automatically. When reading from stdin, the format is always guessed to be FASTA. Default: %(default)s")
+        ap.add_argument('-m', '--model', metavar='filename',
+                        help='Add the model given in the file to the comparisons.')
         ap.add_argument('-j', '--json', action='store_true',
                         help='Output the information in JSON format, for easier later parsing.')
         ap.add_argument('--verbose', action='store_true',
