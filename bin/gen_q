@@ -41,15 +41,14 @@ def main():
     ap.add_argument('base_matrix', choices=list(map(lambda m: m.get_name(), RateMatrix.get_all_models())),
                     help='Specifify which standard sequence model should be used.')
     ap.add_argument('sd', type=float, default=0.1,
-                    help='Define the perturberation that should be used. Each entry in the base matrix will be multiplied with a factor taken from N(1, sd).')
+                    help='Define the perturberation that should be used. Each entry in the R matrix will be multiplied with a factor taken from N(1, sd).')
     ap.add_argument('--paml', action='store_true',
                     help='Output the lower triangular R matrix, as PAML needs.')
     ap.add_argument('--seqgen', action='store_true',
                     help='Output the upper triangular R matrix, as seq-gen needs.')
-    
     ap.add_argument('--indelible', action='store_true',
-                    help='Output the upper triangular R matrix, as seq-gen needs.')
-    
+                    help='Output the upper triangular R matrix, as indelible needs.')
+
     ap.add_argument('-l', '--log-file',
                     help='Give the name of a log file to use')
 
@@ -57,7 +56,7 @@ def main():
 
     if args.log_file:
         logging.basicConfig(filename=args.log_file, level=logging.INFO)
-        
+
     model = args.base_matrix
     sd = args.sd
     m = RateMatrix.instantiate(model)
