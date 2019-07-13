@@ -2,8 +2,11 @@
 import argparse
 import logging
 import numpy as np
+import os
+import sys
 
 from modelmatcher.models import RateMatrix
+from modelmatcher.model_io import read_model
 
 def get_lower_triangle(R):
     r_elems = R[np.tril_indices(20,k=-1)]
@@ -36,9 +39,30 @@ def print_q(r_elems):
     '''
     print(' '.join(map(str,r_elems)))
 
+def get_model(model_name):
+    if model_name in list(map(lambda m: m.get_name(), RateMatrix.get_all_models())):
+        # Standard model
+        model = model_name
+        m = RateMatrix.instantiate(model)
+        return m
+    else:
+        # Assume model name is a file
+        try:
+            with open(model_name) as h:
+                basename = os.path.basename(model_name)
+                if not basename:
+                    basename = 'UserDefined'
+                m = read_model(h, basename) # Use the base of the filename as modelname
+                return m
+        except Exception as e:
+            print(e, file=sys.stderr)
+            sys.exit(f'Could not load model "{args.model_name}". It is neither a known model nor a file containing a model.')
+
+
+
 def main():
     ap = argparse.ArgumentParser(description='Given a choice of rate model (eg WAG, LG), generate a perturbed version of the model to be used with the -r option in seq-gen. The name is misleading: it is the R matrix, not Q, which is output and only the lower-triagular part.')
-    ap.add_argument('base_matrix', choices=list(map(lambda m: m.get_name(), RateMatrix.get_all_models())),
+    ap.add_argument('model_name',
                     help='Specifify which standard sequence model should be used.')
     ap.add_argument('sd', type=float, default=0.1,
                     help='Define the perturberation that should be used. Each entry in the R matrix will be multiplied with a factor taken from N(1, sd).')
@@ -57,9 +81,8 @@ def main():
     if args.log_file:
         logging.basicConfig(filename=args.log_file, level=logging.INFO)
 
-    model = args.base_matrix
+    m = get_model(args.model_name)
     sd = args.sd
-    m = RateMatrix.instantiate(model)
 
     if args.indelible:
         r_part = get_lower_triangle(m.get_r())
