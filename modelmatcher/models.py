@@ -18,6 +18,7 @@ class RateMatrix:
         self.left_eigenvectors = None
         self.q_eigenvals = None
 
+
     @classmethod
     def instantiate(c, modelname):
         '''
@@ -29,6 +30,7 @@ class RateMatrix:
             return classes[modelname]
         else:
             raise Exception(f'This is not a model: {modelname}')
+
 
     @staticmethod
     def combine_models(m1, m2):
@@ -121,7 +123,6 @@ class RateMatrix:
         self.q_eigenvals = evals
         self.right_eigenvectors = evecs
         self.left_eigenvectors = np.linalg.inv(evecs)
-
 
     def get_replacement_probs(self, t):
         '''
