@@ -36,6 +36,8 @@ def main():
         left_index = right_index
     print()
     print(' '.join(map(lambda f: f'{f:.6}', new_model.freq)))
+    print('\n# Created by combine_q from ModelMatcher')
+    print(f'# as the average of rate matrices for {args.model1} and {args.model2}.')
 
 if __name__ == '__main__':
     main()
