@@ -40,11 +40,11 @@ def guess_format(filename):
                     raise Exception(f'Does not recognize the format in {filename}')
                 # Came this far? Success!
                 return 'phylip'
-            
+
 
 def read_alignment(file, input_format):
     '''
-    Factory function. Read the alignment with BioPython's support, and 
+    Factory function. Read the alignment with BioPython's support, and
     return an appropriate alignment.
     '''
     if file == '-':
@@ -70,7 +70,7 @@ def add_to_count_matrix(m, s1, s2):
 import itertools as it
 def msa_to_count_matrix(msa, verbose=False):
     '''
-    Return a normalised count matrix, $F$,  and a frequency vector, 
+    Return a normalised count matrix, $F$,  and a frequency vector,
     $\pi$, based on the input MSA.
     '''
     # Prepare to translate aa sequences to integer lists
@@ -81,12 +81,12 @@ def msa_to_count_matrix(msa, verbose=False):
     sequences = []
     for s in map(lambda r: r.seq, msa):
         sequences.append(list(map(lambda c: alphabet_dictionary.get(c, None), s)))
-        
+
     if verbose:
         n_seqs = len(sequences)
         n_pairs = n_seqs * (n_seqs - 1) / 2
         pb = ProgressBar(total=n_pairs, prefix='Counting AA pairs. Progress:', suffix='', decimals=0, length=50, fill='+', zfill=' ')
-        
+
     m_sum = np.zeros((20, 20))
     i=0
     for a, b in it.combinations(sequences, 2):
@@ -115,7 +115,7 @@ def msa_to_count_matrix(msa, verbose=False):
 def diagonalize_with_model(m, Q):
     '''
     Try to diagonalize m using the eigenvectors of Q and the equilibrium distribution.
-    Return the sum of the off-diagonal elements of what was supposed to be the 
+    Return the sum of the off-diagonal elements of what was supposed to be the
     diagonal matrix.
     '''
     off_diagonal_elems = np.ones((20,20))
@@ -129,7 +129,7 @@ def diagonalize_with_model(m, Q):
     prod = np.matmul(left, right_product)
     off_diagonal = prod * off_diagonal_elems
     return np.sum(np.absolute(off_diagonal)) # Measure the deviation as sum of off-diagonal elements
-    
+
 def apply_models(m, q=None):
     '''
     Try eigenvectors of standard rate matrices aginst the count matrix m
@@ -137,7 +137,7 @@ def apply_models(m, q=None):
     matrices= list(RateMatrix.get_all_models())
     diffs = []
 
-    if matrices:
+    if q:
         matrices.append(q)
 
     for Q in matrices:
@@ -155,7 +155,7 @@ def main(args):
     n_observations = int(np.sum(N))
     F = N / n_observations
     if args.verbose:
-        print('Testing models', file=sys.stderr)    
+        print('Testing models', file=sys.stderr)
 
     if args.model:
         with open(args.model) as h:
@@ -198,4 +198,3 @@ if __name__ == '__main__':
         main(args)
     except KeyboardInterrupt:
         sys.exit()
-
