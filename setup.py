@@ -19,7 +19,7 @@ if sys.version_info.major < 3:
     sys.exit('\n'
              'Sorry, Python 2 is not supported\n'
              'Did you run pip install modelmatcher?\n'
-             'Try \'pip3 install modelmatcher\'')
+             'Try "pip3 install modelmatcher"')
 
 elif sys.version_info.minor < 2:
     sys.exit('\nSorry, Python < 3.2 is not supported\n')
