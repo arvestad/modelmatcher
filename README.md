@@ -64,5 +64,5 @@ $ modelmatcher  --json  inputfile.fasta
 Recommended installation is:
 ```
 pip install --upgrade pip
-pip install alv
+pip install modelmatcher
 ```
