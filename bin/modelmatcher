@@ -211,10 +211,18 @@ def verify_feasible_aa_freqs(aa_freqs):
 
 
 def main(args):
+    if args.list_models:
+        models = RateMatrix.get_all_models()
+        for m in models:
+            print(m.get_name())
+        sys.exit()
     if args.verbose:
         print('Reading MSA', file=sys.stderr)
     try:
         msa = read_alignment(args.infile, args.format)
+    except ValueError as e:
+        print('Error:', e)
+        sys.exit(3)
     except SyntaxError as e:
         print('Error:',e)
         sys.exit(2)
@@ -245,8 +253,10 @@ def main(args):
         output_json(sorted_analysis, n_observations, args.infile, len(msa))
     elif args.output_format == 'tabular':
         output_tabular(sorted_analysis)
-    elif args.output_format in ['iqtree', 'raxml']:
-        output_simple_choice(sorted_analysis)
+    elif args.output_format == 'raxml':
+        output_raxml_choice(sorted_analysis)
+    elif args.output_format == 'iqtree':
+        output_iqtree_choice(sorted_analysis)
     elif args.output_format == 'phyml':
         output_phyml_choice(sorted_analysis)
     elif args.output_format == 'mrbayes':
@@ -259,10 +269,13 @@ def output_json(sorted_analysis, n_observations, filename, n_seqs):
     '''
     Write the analysis in JSON format to stdout.
     '''
+    model_ranking = list(map(lambda triple: (triple[0]+triple[1], triple[2]), sorted_analysis))
+    simple_model_ranking = list(filter(lambda triple: triple[1]=='', model_ranking))
     json_data = {"n_observations": n_observations,
                  "infile": filename,
                  "n_seqs": n_seqs,
-                 "model_ranking": list(map(lambda triple: (triple[0]+triple[1], triple[2]), sorted_analysis))
+                 "model_ranking": model_ranking,
+                 "simple_model_ranking": simple_model_ranking # Without the +F models
     }
     json.dump(json_data, sys.stdout)
     print()
@@ -279,12 +292,47 @@ def output_tabular(sorted_analysis):
         print(f'{new_name:12} {d:>8.3f}')
 
 
-def output_simple_choice(sorted_analysis):
+def output_raxml_choice(sorted_analysis):
     '''
     Print the best model (i.e., with lowest score) to stdout.
     '''
     best = sorted_analysis[0]
     name = best[0] + best[1]    # Regular name and possible adaption (+F)
+    print(name) # First element of the first-ranked tuple (which is on the format '(modelname, score)'
+
+
+def output_iqtree_choice(sorted_analysis):
+    '''
+    Print the best model (i.e., with lowest score) to stdout.
+    '''
+    iqtree_models = {         # Map modelmatcher model names to IQTREE model names
+    'BLOSUM62' : 'Blosum62',
+    'VT': 'VT',
+    'WAG':'WAG',
+    'JTT-DCMUT':'JTTDCMut',
+    'JTT':'JTT',
+    'LG':'LG',
+    'FLU':'FLU',
+    'DCMUT':'DCMut',
+    'Dayhoff':'Dayhoff',
+    'HIVb':'HIVb',
+    'cpREV':'cpREV',
+    'rtREV':'RtREV',
+    'HIVw':'HIVw',
+    'MtZoa':'mtZOA',
+    'mtArt':'mtART',
+    'MtMAM':'mtMAM',
+    'MtREV':'mtREV',
+    'mtDeu':'mtDeu',
+    'mtInv':'mtInv',
+    'mtMet':'mtMet',
+    'mtPro':'mtPro',
+    'mtVer':'mtVer',
+    'PMB':'PMB'
+    }
+
+    best = sorted_analysis[0]
+    name = iqtree_models[best[0]] + best[1]    # Regular name and possible adaption (+F)
     print(name) # First element of the first-ranked tuple (which is on the format '(modelname, score)'
 
 
@@ -361,6 +409,8 @@ Example usage:
         ap.add_argument('-of', '--output_format', default='tabular',
                         choices=['tabular', 'json', 'iqtree', 'raxml', 'phyml', 'mrbayes'],
                         help='Choose output format. Tabular format is default. JSON is for convenient later parsing, with some additional meta-data added. For one-line output convenient for immediate use by inference tools, consider raxml and similar choices. Note that the PhyML and MrBayes options are restricted to their implemented models. Although PhyML supports the +F models (using the "-f e" option), this is not reflected in the output from "modelmatcher -of phyml ..." at this time.')
+        ap.add_argument('--list-models', action='store_true',
+                        help='Output a list of models implemented in modelmatcher, then exit.')
         ap.add_argument('--verbose', action='store_true',
                         help='Output progress information')
         args = ap.parse_args()
