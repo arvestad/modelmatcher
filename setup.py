@@ -30,11 +30,11 @@ setuptools.setup(
     author="Lars Arvestad",
     author_email="arve@math.su.se",
     description="Rapid identification of sequence evolution models",
-    scripts = ['bin/modelmatcher', 'bin/gen_q', 'bin/gen_freq', 'bin/modelprojector', 'bin/combine_q'],
+    scripts = ['bin/modelmatcher'],
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/arvestad/modelmatcher", # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  To be created!
-    test_suite = "tests",
+#    test_suite = "tests",
     packages=setuptools.find_packages(),
     python_requires='>=3.2',
     install_requires=[
