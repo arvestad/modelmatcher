@@ -11,7 +11,41 @@ Example usage:
 $ modelmatcher inputfile.fasta
 ```
 
+The input file is a multiple sequence alignmnent in one of these common formats:
+
+* FASTA
+* Clustal
+* NEXUS
+* PHYLIP
+* STOCKHOLM
+
 ### Options
+
+Optional options:
+``` shell
+  -h, --help            show this help message and exit
+  -f {guess,fasta,clustal,nexus,phylip,stockholm}, --format {guess,fasta,clustal,nexus,phylip,stockholm}
+                        Specify what sequence type to assume. Be specific if
+                        the file is not recognized automatically. When reading
+                        from stdin, the format is always guessed to be FASTA.
+                        Default: guess
+  -m filename, --model filename
+                        Add the model given in the file to the comparisons.
+  -nf, --no-F-testing   Do not try +F models, i.e., do not test with amino
+                        acid frequencies estimated from the MSA.
+  -of {tabular,json,iqtree,raxml,phyml,mrbayes}, --output_format {tabular,json,iqtree,raxml,phyml,mrbayes}
+                        Choose output format. Tabular format is default. JSON
+                        is for convenient later parsing, with some additional
+                        meta-data added. For one-line output convenient for
+                        immediate use by inference tools, consider raxml and
+                        similar choices. Note that the PhyML and MrBayes
+                        options are restricted to their implemented models.
+                        Although PhyML supports the +F models (using the "-f
+                        e" option), this is not reflected in the output from
+                        "modelmatcher -of phyml ..." at this time.
+  --verbose             Output progress information
+```
+
 
 
 ### Input formats
