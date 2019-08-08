@@ -22,7 +22,7 @@ The input file is a multiple sequence alignmnent in one of these common formats:
 ### Options
 
 Optional options:
-``` shell
+```
   -h, --help            show this help message and exit
   -f {guess,fasta,clustal,nexus,phylip,stockholm}, --format {guess,fasta,clustal,nexus,phylip,stockholm}
                         Specify what sequence type to assume. Be specific if
