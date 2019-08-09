@@ -33,7 +33,7 @@ setuptools.setup(
     scripts = ['bin/modelmatcher', 'bin/gen_q', 'bin/gen_freq', 'bin/modelprojector', 'bin/combine_q'],
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/arvestad/modelmatcher", # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  To be created!
+    url="https://github.com/arvestad/modelmatcher",
 #    test_suite = "tests",
     packages=setuptools.find_packages(),
     python_requires='>=3.2',
