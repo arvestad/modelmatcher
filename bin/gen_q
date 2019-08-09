@@ -39,7 +39,11 @@ def print_q(r_elems):
     '''
     print(' '.join(map(str,r_elems)))
 
-def get_model(model_name):
+def get_model(model_name, backup_dir='.'):
+    '''
+    Return instance of the named model. If not a built-in model, try loading from file in
+    the given directory (current dir, by default).
+    '''
     if model_name in list(map(lambda m: m.get_name(), RateMatrix.get_all_models())):
         # Standard model
         model = model_name
@@ -47,8 +51,9 @@ def get_model(model_name):
         return m
     else:
         # Assume model name is a file
+        filename=backup_dir + '/' + model_name
         try:
-            with open(model_name) as h:
+            with open(filename) as h:
                 basename = os.path.basename(model_name)
                 if not basename:
                     basename = 'UserDefined'
@@ -64,14 +69,20 @@ def main():
     ap = argparse.ArgumentParser(description='Given a choice of rate model (eg WAG, LG), generate a perturbed version of the model to be used with the -r option in seq-gen. The name is misleading: it is the R matrix, not Q, which is output and only the lower-triagular part.')
     ap.add_argument('model_name',
                     help='Specifify which standard sequence model should be used.')
+    ap.add_argument('-d', '--model-directory',
+                    help='If model name is not a built-in, try loading matrix from this directory.')
     ap.add_argument('sd', type=float, default=0.1,
                     help='Define the perturberation that should be used. Each entry in the R matrix will be multiplied with a factor taken from N(1, sd).')
-    ap.add_argument('--paml', action='store_true',
-                    help='Output the lower triangular R matrix, as PAML needs.')
-    ap.add_argument('--seqgen', action='store_true',
-                    help='Output the upper triangular R matrix, as seq-gen needs.')
-    ap.add_argument('--indelible', action='store_true',
-                    help='Output the upper triangular R matrix, as indelible needs.')
+    group=ap.add_mutually_exclusive_group(required=True)
+    group.add_argument('--paml', action='store_true',
+                       help='Output the lower triangular R matrix, as PAML needs.')
+    group.add_argument('--seqgen', action='store_true',
+                       help='Output the upper triangular R matrix, as seq-gen needs.')
+    group.add_argument('--indelible', action='store_true',
+                       help='Output the upper triangular R matrix, as indelible needs.')
+    group.add_argument('--freqs', action='store_true',
+                       help='Output the amino acid frequencies of the named model.')
+
 
     ap.add_argument('-l', '--log-file',
                     help='Give the name of a log file to use')
@@ -81,10 +92,13 @@ def main():
     if args.log_file:
         logging.basicConfig(filename=args.log_file, level=logging.INFO)
 
-    m = get_model(args.model_name)
+    m = get_model(args.model_name, args.model_directory)
     sd = args.sd
 
-    if args.indelible:
+    if args.freqs:
+        f = m.get_freq()
+        print(' '.join(map(str, f)))
+    elif args.indelible:
         r_part = get_lower_triangle(m.get_r())
         r_new = perturb(r_part, sd)
         i = 0
