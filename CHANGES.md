@@ -1,5 +1,16 @@
 # Changes to modelmatcher
 
+## 1.1.1
+
+* Added more models:
+    - mtDeu
+    - mtInv
+    - mtMet
+    - mtPro
+    - mtVer
+    - PMB
+
+
 ## 1.1.0
 
 * Added support for testing MSA amino-acid frequencies on top of the
