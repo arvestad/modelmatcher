@@ -19,6 +19,10 @@ The input file is a multiple sequence alignmnent in one of these common formats:
 * PHYLIP
 * STOCKHOLM
 
+The output is a list of models, in order of fit to data, and their modelmatcher score.
+The base model (such as JTT, WAG, LG, etc) is predicted, as well as whether one should
+adapt to the alignments amino acid composition (i.e., JTT+F, WAG+F, etc).
+
 ### Options
 
 Optional options:
