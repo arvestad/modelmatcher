@@ -40,7 +40,7 @@ setuptools.setup(
     install_requires=[
         'biopython>=1.70',
         'numpy',
-        'console_progressbar'
+        'console_progressbar>=1.1.2'
     ],
     classifiers=(
         "Programming Language :: Python :: 3",
