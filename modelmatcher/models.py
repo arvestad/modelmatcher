@@ -1,8 +1,21 @@
 # Define the R matrices and default frequencies
 
+import math
 import numpy as np
+import scipy.optimize
+
+'''
+All well-known replacement rate matrices are defined in this module, as subclasses to the base class RateMatrix.
+
+There are two class methods to make it easier to work with the matrices.
+'''
 
 class RateMatrix:
+    # Class constants
+    _maxiters=50               # Limit number of iterations in solvers
+    _tolerance=0.01            # Limit precision in root finding
+    _maxdistance = 10          # Do not try to estimate distance beyond this
+
     '''
     A class for representing matrices. The goal is to abstract away the representation
     (Q or R?) and implement the most basic computations on them.
@@ -98,9 +111,12 @@ class RateMatrix:
         '''
         Combine the R matrix with given frequences, and compute the
         implied Q matrix.
+
+        Ensure that Q is properly scaled to one expected event per time unit.
+        And compute the eigen decomposition of the "fresh" Q.
         '''
         self.freq = np.array(freq)
-        D_freq = np.diag(self.freq)
+        D_freq = np.diag(self.freq) # Diagonal matrix with residue freqs
 
         Q = np.matmul(self.R, D_freq)                    # $q_{ij} = r_{ij} * \pi_j$
         Q[ np.diag_indices(20) ] = 0 - np.sum(Q, axis=1) # Set diagonal so row sum is zero
@@ -142,8 +158,177 @@ class RateMatrix:
         Get a count matrix simulating a pairwise aligment with n columns each taken
         at the time points in the t_vec list.
         '''
+        import random
+        N = np.zeros((20,20))
         P_matrices = map(self.get_replacement_probs, t_vec)
-        raise Exception('Not done here!')
+        for P in P_matrices:
+            rows = random.choices(list(range(20)), weights=self.freq, k=n)
+            for row in rows:
+#                print(f'Q row {row}:',  self.Q[row])
+                col = random.choices(list(range(20)), weights=P[row])[0]
+                N[row, col] += 1
+        return N
+
+
+    @classmethod
+    def kimura_distance(self, N):
+        '''
+        This method is not tied to a rate matrix. It is basically a classic
+        model-free heuristic. It is implemented here primarily to provide a
+        starting distance for ml_distance_estimate.
+        '''
+        n_sum = np.sum(N)
+        changed_fraction = 1 -  np.sum(np.diag(N)) / n_sum
+        adjusted = changed_fraction + 0.2 * changed_fraction**2
+        if adjusted > 0.854:    # "basically infinite"
+            adjusted = 0.854    # Safe value for the logarithm
+        return - math.log(1-adjusted)
+
+    def probability_matrix_at_t(self, t):
+        '''
+        Compute P(t) using the eigen decomposition of Q.
+        '''
+        q_eigenval_diag = np.diag(np.exp(t * self.q_eigenvals))
+        P_t = np.matmul(self.right_eigenvectors,
+                        np.matmul(q_eigenval_diag, self.left_eigenvectors))
+        return P_t
+
+
+    def log_likelihood_at_t(self, N, t):
+        '''
+        Return the loglikelihood of observing a pair of sequence that yield a
+        replacement count matrix N.
+
+        Use that:
+           log L(t) = log \prod_{i,j} p_{i,j}^{N_{i,j}}(t) = \sum N_{i,j} log(p_{i,j}(t))
+        '''
+        P_t = self.probability_matrix_at_t(t)
+        log_likelihood = np.sum(np.multiply(N, np.log(P_t)))
+        return log_likelihood
+
+
+    def ml_distance_estimate(self, acc1, acc2, N, start_dist=None):
+        '''
+        Maximum likelihood estimation of evolutionary distance between the two
+        sequences with accessions (ids) acc1 and acc2, and represented by the
+        20x20 matrix N that contains the observed replacements (and
+        non-replacements).
+
+        The accessions are only used for warnings and errors.
+
+        You can give a starting value for the ML distance estimation with the
+        start_dist parameter.
+
+        We apply Newton-Raphson estimation to find the evolutionary distance
+        where the derivative of the likelihood of N is zero (or close enough).
+        Note that Newton-Raphson works with derivatives of functions, so there are
+        two derivatives mentioned here: the likelihood derivative and double derivative.
+        '''
+        if start_dist is None:
+            d = RateMatrix.kimura_distance(N)
+        else:
+            d = start_dist
+        delta = 0.001           # The little step we take when estimating derivative
+
+        # These important contants should of course be stored more prominently, or
+        # even be programmatically changable.
+
+        if d < RateMatrix._tolerance:             # Too close to zero. Not good for computational reasons, bump it up:
+            d = 0.1
+
+        L_derivative = self._likelihood_derivative_at_t(N, d)
+        for iteration in range(RateMatrix._maxiters): # Limit number of iterations
+            print(f'Iter {iteration}: d = {d}, L_der = {L_derivative}')
+            if abs(L_derivative) < RateMatrix._tolerance:    # Derivative is basically zero.
+                print(f'Returning bc L_derivative < _tolerance: {L_derivative} < {RateMatrix._tolerance}')
+                return d                   # This is the _normal_ exit point!
+            new_L_derivative = self._likelihood_derivative_at_t(N, d + delta)
+            deriv = (new_L_derivative - L_derivative) / delta
+            d = d - L_derivative / deriv # Newton-Raphson update
+
+            # Three possible termination conditions
+            if d < RateMatrix._tolerance:
+                print(f'Returning bc d < _tolerance: {d} < {RateMatrix._tolerance}')
+                return d
+            if d > RateMatrix._maxdistance:          # Basically infinity! Don't go further
+                print(f'Returning bc d > _maxdistance: {d} > {_maxdistance}')
+                return 5
+            if abs(L_derivative) < abs(new_L_derivative): # Bad sign, this derivative should not increase. It might be an effect of working with small numbers, so jsut return.
+                print(f'Returning bc abs(L_derivative) < abs(new_L_deriv): {abs(L_derivative)} < {abs(new_L_derivative)}')
+                return d
+
+            # Prepare for next iteration
+            L_derivative = new_L_derivative
+
+        # After max allowed iterations, we return
+        return d
+
+
+    def ml_distance_estimate_brent(self, acc1, acc2, N, start_dist=None):
+        '''
+        Same as ml_distance_estimate, but using Brent's method in SciPy.
+        '''
+
+        delta = 0.001           # The little step we take when estimating derivative
+
+        if start_dist is None:
+            d = RateMatrix.kimura_distance(N)
+        else:
+            d = start_dist
+
+        ml_func = lambda x: - self.log_likelihood_at_t(N, x)
+        res = scipy.optimize.minimize_scalar(ml_func, (RateMatrix._tolerance,d,10), method='Brent', tol=RateMatrix._tolerance, maxiter=RateMatrix._maxiters)
+        return res.x
+
+    def ml_distance_estimate_secant(self, acc1, acc2, N, start_dist=None):
+        '''
+        Same as ml_distance_estimate, but using the secant method in SciPy.
+        '''
+
+        delta = 0.001           # The little step we take when estimating derivative
+
+
+        if start_dist is None:
+            d = RateMatrix.kimura_distance(N)
+        else:
+            d = start_dist
+
+        ml_func = lambda x: self._likelihood_derivative_at_t(N, x)
+        res = scipy.optimize.newton(ml_func, d, tol=RateMatrix._tolerance, maxiter=RateMatrix._maxiters)
+        #secant method is used because we do not provide a fucntion for the derivative
+        return res
+
+
+    def _likelihood_derivative_at_t(self, N, t):
+        '''
+        Derivative of the loglikelihood. Helper for ml_distance_estimate.
+
+        log L(t) = log \prod_{i,j} p_{i,j}^{N_{i,j}}(t) = \sum N_{i,j} log(p_{i,j}(t))
+        d/dt log L(t) = \sum_{i,j} N_{i,j} \cdot \frac{1}{p_{i,j}(t)} \cdot p_{i,j}'t()
+        Which means that it becomes
+           log L(t) = \sum N .* P'(t) ./ P(t)
+        where
+           P(t) = e^{Qt}
+           P'(t) = Q e^{Qt}
+
+        Use the eigen decomposition to exponentiate Q.
+        '''
+        # print('Q:\n', self.Q)
+        # print()
+        # print('Q?:\n', np.matmul(np.matmul(self.right_eigenvectors, np.diag(self.q_eigenvals)), self.left_eigenvectors))
+
+        # Compute P(t) for the
+        # print('lambda:', self.q_eigenvals)
+        # print()
+
+        P_t = self.probability_matrix_at_t(t)
+
+        # Compute  QP(t)
+        direction = np.matmul(P_t, self.Q)
+
+        likelihood_derivative = np.sum(np.divide(np.multiply(N, direction), P_t))
+        return likelihood_derivative
+
 
 
     def __str__(self):
@@ -385,6 +570,33 @@ def mpp(M):
     print(s)
 
 
+
+def test_dist_estimation(n, d=0.1):
+
+    M = RateMatrix.instantiate('JTT')
+    N = M.sample_count_matrix(n, [d])
+
+    for dist in [0.8*d, 0.9*d, 0.99*d,  d, 1.01*d, 1.1*d, 1.2*d]:
+        logL = M.log_likelihood_at_t(N, dist)
+        deriv = M._likelihood_derivative_at_t(N, dist)
+        print(f'log L(N | d={dist}) = {logL} \t d/dt log L(d) = {deriv}')
+
+    print()
+    kimura =  RateMatrix.kimura_distance(N)
+    kimuraL =  M.log_likelihood_at_t(N, kimura)
+    print(f'Kimura heuristic: {kimura:.3}  log(L) = {kimuraL}')
+
+    my_res = M.ml_distance_estimate('A', 'B', N)
+    myL = M.log_likelihood_at_t(N, my_res)
+    print(f'My N-R:          {my_res:.3}  log(L) = {myL}')
+
+    # brent_res = M.ml_distance_estimate_brent('A', 'B', N)
+    # brentL = M.log_likelihood_at_t(N, brent_res)
+    # print(f'SciPy Brent:     {brent_res:.3}  log(L) = {brentL}')
+
+    secant_res = M.ml_distance_estimate_secant('A', 'B', N)
+    secantL = M.log_likelihood_at_t(N, secant_res)
+    print(f'SciPy secant:    {secant_res:.3}  log(L) = {secantL}')
 
 
 if __name__ == '__main__':

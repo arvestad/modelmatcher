@@ -1,5 +1,11 @@
 # Changes to modelmatcher
 
+## 1.1.2
+
+* Getting the package to work as useful module as well.
+* There is now basic support in the module (not the modelmatcher tool)
+  for estimating evolutionary distance.
+
 ## 1.1.1
 
 * Added more models:
