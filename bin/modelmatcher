@@ -17,7 +17,9 @@ def guess_format(filename):
     '''
     with open(filename) as h:
         first_line = h.readline()
-        if first_line[:15] == '# STOCKHOLM 1.0':
+        if len(first_line) == 0:
+            raise IOError(f"Error: file '{filename}' is empty. Aborting.")
+        elif first_line[:15] == '# STOCKHOLM 1.0':
             return 'stockholm'
         elif first_line == 'CLUSTAL':
 
@@ -220,15 +222,19 @@ def main(args):
         print('Reading MSA', file=sys.stderr)
     try:
         msa = read_alignment(args.infile, args.format)
+    except IOError as e:
+        print(e, file=sys.stderr)
+        sys.exit(4)
     except ValueError as e:
-        print('Error:', e)
+        print('Error:', e, file=sys.stderr)
         sys.exit(3)
     except SyntaxError as e:
-        print('Error:',e)
+        print('Error:',e, file=sys.stderr)
         sys.exit(2)
     except FileNotFoundError:
-        print(f"Error: No alignment file '{args.infile}' was found. Aborting.")
+        print(f"Error: No alignment file '{args.infile}' was found. Aborting.", file=sys.stderr)
         sys.exit(1)
+        
 
     N, amino_acid_freqs = msa_to_count_matrix(msa, args.verbose)
     n_observations = int(np.sum(N))
@@ -270,7 +276,7 @@ def output_json(sorted_analysis, n_observations, filename, n_seqs):
     Write the analysis in JSON format to stdout.
     '''
     model_ranking = list(map(lambda triple: (triple[0]+triple[1], triple[2]), sorted_analysis))
-    simple_model_ranking = list(filter(lambda triple: triple[1]=='', model_ranking))
+    simple_model_ranking = list(map(lambda triple: (triple[0], triple[2]), filter(lambda triple: triple[1]=='', sorted_analysis)))
     json_data = {"n_observations": n_observations,
                  "infile": filename,
                  "n_seqs": n_seqs,
