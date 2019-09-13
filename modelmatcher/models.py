@@ -238,7 +238,7 @@ class RateMatrix:
 
         L_derivative = self._likelihood_derivative_at_t(N, d)
         for iteration in range(RateMatrix._maxiters): # Limit number of iterations
-            print(f'Iter {iteration}: d = {d}, L_der = {L_derivative}')
+#            print(f'Iter {iteration}: d = {d}, L_der = {L_derivative}')
             if abs(L_derivative) < RateMatrix._tolerance:    # Derivative is basically zero.
                 print(f'Returning bc L_derivative < _tolerance: {L_derivative} < {RateMatrix._tolerance}')
                 return d                   # This is the _normal_ exit point!
@@ -248,13 +248,13 @@ class RateMatrix:
 
             # Three possible termination conditions
             if d < RateMatrix._tolerance:
-                print(f'Returning bc d < _tolerance: {d} < {RateMatrix._tolerance}')
+#                print(f'Returning bc d < _tolerance: {d} < {RateMatrix._tolerance}')
                 return d
             if d > RateMatrix._maxdistance:          # Basically infinity! Don't go further
-                print(f'Returning bc d > _maxdistance: {d} > {_maxdistance}')
+#                print(f'Returning bc d > _maxdistance: {d} > {_maxdistance}')
                 return 5
             if abs(L_derivative) < abs(new_L_derivative): # Bad sign, this derivative should not increase. It might be an effect of working with small numbers, so jsut return.
-                print(f'Returning bc abs(L_derivative) < abs(new_L_deriv): {abs(L_derivative)} < {abs(new_L_derivative)}')
+#                print(f'Returning bc abs(L_derivative) < abs(new_L_deriv): {abs(L_derivative)} < {abs(new_L_derivative)}')
                 return d
 
             # Prepare for next iteration
