@@ -323,24 +323,30 @@ def output_iqtree_choice(sorted_analysis):
     'Dayhoff':'Dayhoff',
     'HIVb':'HIVb',
     'cpREV':'cpREV',
-    'rtREV':'RtREV',
+    'rtREV':'rtREV',
     'HIVw':'HIVw',
     'MtZoa':'mtZOA',
     'mtArt':'mtART',
     'MtMAM':'mtMAM',
     'MtREV':'mtREV',
-    'mtDeu':'mtDeu',
     'mtInv':'mtInv',
     'mtMet':'mtMet',
-    'mtPro':'mtPro',
     'mtVer':'mtVer',
     'PMB':'PMB'
+
+# Models not implemented in IQTREE:        
+#    'mtDeu':'mtDeu',
+#    'mtPro':'mtPro',
+
     }
 
-    best = sorted_analysis[0]
-    name = iqtree_models[best[0]] + best[1]    # Regular name and possible adaption (+F)
-    print(name) # First element of the first-ranked tuple (which is on the format '(modelname, score)'
-
+    for best in sorted_analysis:
+        if best[0] in iqtree_models:
+            name = iqtree_models[best[0]] + best[1]    # Regular name and possible adaption (+F)
+            print(name) # First element of the first-ranked tuple (which is on the format '(modelname, score)'
+            return      # Return early if a model implemented in IQTREE is found
+    else:
+        raise Exception('Bug: we should not end up here (output_iqtree_choice)')    
 
 def output_phyml_choice(sorted_analysis):
     '''
@@ -414,7 +420,7 @@ Example usage:
                         help='Do not try +F models, i.e., do not test with amino acid frequencies estimated from the MSA.')
         ap.add_argument('-of', '--output_format', default='tabular',
                         choices=['tabular', 'json', 'iqtree', 'raxml', 'phyml', 'mrbayes'],
-                        help='Choose output format. Tabular format is default. JSON is for convenient later parsing, with some additional meta-data added. For one-line output convenient for immediate use by inference tools, consider raxml and similar choices. Note that the PhyML and MrBayes options are restricted to their implemented models. Although PhyML supports the +F models (using the "-f e" option), this is not reflected in the output from "modelmatcher -of phyml ..." at this time.')
+                        help='Choose output format. Tabular format is default. JSON is for convenient later parsing, with some additional meta-data added. For one-line output convenient for immediate use by inference tools, consider raxml and similar choices. Note that the IQTREE, PhyML, and MrBayes options are restricted to their implemented models. Although PhyML supports the +F models (using the "-f e" option), this is not reflected in the output from "modelmatcher -of phyml ..." at this time.')
         ap.add_argument('--list-models', action='store_true',
                         help='Output a list of models implemented in modelmatcher, then exit.')
         ap.add_argument('--verbose', action='store_true',
