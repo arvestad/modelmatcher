@@ -1,2 +1,2 @@
-import modelmatcher.models
-import modelmatcher.model_io
+from modelmatcher.models import RateMatrix
+from modelmatcher.model_io import *
