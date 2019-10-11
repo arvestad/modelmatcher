@@ -393,16 +393,16 @@ class PMB(RateMatrix):
 
 
 
-def mpp(M):
+def mpp(matrix):
     '''
     MatrixPrettyPrint: Convert Q to a nicely printable string.
     '''
-    assert isinstance(M, np.ndarray)
+    assert isinstance(matrix, np.ndarray)
     s = '[\n'
     for row in range(20):
         s += ' ['
         for col in range(20):
-            val = M.item((row, col))
+            val = matrix.item((row, col))
             s+=f' {val:7.3}'
         s += ']\n'
     s += ']'
@@ -412,30 +412,30 @@ def mpp(M):
 
 def test_dist_estimation(n, d=0.1):
 
-    M = RateMatrix.instantiate('JTT')
-    N = M.sample_count_matrix(n, [d])
+    matrix = RateMatrix.instantiate('JTT')
+    count_matrix = matrix.sample_count_matrix(n, [d])
 
     for dist in [0.8*d, 0.9*d, 0.99*d,  d, 1.01*d, 1.1*d, 1.2*d]:
-        logL = M.log_likelihood_at_t(N, dist)
-        deriv = M._likelihood_derivative_at_t(N, dist)
+        logL = matrix.log_likelihood_at_t(count_matrix, dist)
+        deriv = matrix._likelihood_derivative_at_t(count_matrix, dist)
         print(f'log L(N | d={dist}) = {logL} \t d/dt log L(d) = {deriv}')
 
     print()
-    kimura =  RateMatrix.kimura_distance(N)
-    kimuraL =  M.log_likelihood_at_t(N, kimura)
-    print(f'Kimura heuristic: {kimura:.3}  log(L) = {kimuraL}')
+    kimura =  RateMatrix.kimura_distance(count_matrix)
+    kimura_loglikelihood =  matrix.log_likelihood_at_t(count_matrix, kimura)
+    print(f'Kimura heuristic: {kimura:.3}  log(L) = {kimura_loglikelihood}')
 
-    my_res = M.ml_distance_estimate('A', 'B', N)
-    myL = M.log_likelihood_at_t(N, my_res)
-    print(f'My N-R:          {my_res:.3}  log(L) = {myL}')
+    my_res = matrix.ml_distance_estimate('A', 'B', count_matrix)
+    my_loglikelihood = matrix.log_likelihood_at_t(count_matrix, my_res)
+    print(f'My N-R:          {my_res:.3}  log(L) = {my_loglikelihood}')
 
-    # brent_res = M.ml_distance_estimate_brent('A', 'B', N)
-    # brentL = M.log_likelihood_at_t(N, brent_res)
+    # brent_res = M.ml_distance_estimate_brent('A', 'B', count_matrix)
+    # brentL = M.log_likelihood_at_t(count_matrix, brent_res)
     # print(f'SciPy Brent:     {brent_res:.3}  log(L) = {brentL}')
 
-    secant_res = M.ml_distance_estimate_secant('A', 'B', N)
-    secantL = M.log_likelihood_at_t(N, secant_res)
-    print(f'SciPy secant:    {secant_res:.3}  log(L) = {secantL}')
+    secant_res = matrix.ml_distance_estimate_secant('A', 'B', count_matrix)
+    secant_loglikelihood = matrix.log_likelihood_at_t(count_matrix, secant_res)
+    print(f'SciPy secant:    {secant_res:.3}  log(L) = {secant_loglikelihood}')
 
 
 def __setup_good_print_options():
