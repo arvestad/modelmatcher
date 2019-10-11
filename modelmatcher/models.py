@@ -416,9 +416,9 @@ def test_dist_estimation(n, d=0.1):
     count_matrix = matrix.sample_count_matrix(n, [d])
 
     for dist in [0.8*d, 0.9*d, 0.99*d,  d, 1.01*d, 1.1*d, 1.2*d]:
-        logL = matrix.log_likelihood_at_t(count_matrix, dist)
+        log_likelihood = matrix.log_likelihood_at_t(count_matrix, dist)
         deriv = matrix._likelihood_derivative_at_t(count_matrix, dist)
-        print(f'log L(N | d={dist}) = {logL} \t d/dt log L(d) = {deriv}')
+        print(f'log L(N | d={dist}) = {log_likelihood} \t d/dt log L(d) = {deriv}')
 
     print()
     kimura =  RateMatrix.kimura_distance(count_matrix)
