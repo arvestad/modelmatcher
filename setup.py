@@ -1,6 +1,22 @@
 import setuptools
 import sys
 
+def read_version_string(filename):
+    versionstring = None
+    with open(filename) as h:
+        for line in h:
+            try:
+                identifier, equalsign, versionstring = line.split()
+                if identifier == '__version__' and equalsign == '=':
+                    return versionstring.strip("'")
+            except:
+                continue        # Just read past lines to fitting the pattern
+    if versionstring is None:
+        return 'unknown_version'
+
+__version__ = read_version_string('modelmatcher/version.py')
+
+
 with open("README.md", "r") as fh:
     at_top = True
     long_description = ''
