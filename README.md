@@ -23,6 +23,15 @@ The output is a list of models, in order of fit to data, and their modelmatcher 
 The base model (such as JTT, WAG, LG, etc) is predicted, as well as whether one should
 adapt to the alignments amino acid composition (i.e., JTT+F, WAG+F, etc).
 
+If you want to automatically feed the prediction from `modelmatcher` to a phylogenetic inference software, consider using
+the `-of` option: 
+```shell
+iqtree  -s infile.phy  -m $(modelmatcher -of iqtree infile.phy)
+```
+The dollar-parenthesis is a subcommand and the output is a single model name. Only models accepted by the given application (here: IQTREE) are output.
+
+
+
 ### Options
 
 Optional options:
@@ -58,7 +67,7 @@ Optional options:
   --verbose             Output progress information
   --version
 ```
-
+See the section "Output" below for some more examples. 
 
 
 ### Input formats
@@ -74,7 +83,7 @@ requested specifically.
 
 ### Output
 
-Output is given as a simple text table, or in JSON format for easy parsing by
+The default output is given as a simple text table, or in JSON format for easy parsing by
 other scripts, ranking possible models in preference order. For example, the command above may yield a table looking like:
 
 ```
