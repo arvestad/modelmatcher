@@ -2,7 +2,6 @@
 
 import math
 import numpy as np
-import scipy.optimize
 
 '''
 All well-known replacement rate matrices are defined in this module, as subclasses to the base class RateMatrix.
@@ -48,8 +47,8 @@ class RateMatrix:
     @staticmethod
     def combine_models(m1, m2):
         new_model = RateMatrix(f'avg({m1.name},{m2.name})')
-#        new_model.Q = 0.5 * (m1.Q + m2.Q)
-        new_model.Q = m1.Q
+        new_model.Q = 0.5 * (m1.Q + m2.Q)
+#        new_model.Q = m1.Q
         new_model.freq = 0.5 * (m1.freq + m2.freq) # The $\pi$ vector
 
         # Now need new R matrix. Use that $r_{ij} = q_{ij} / \pi_j$
@@ -408,34 +407,6 @@ def mpp(matrix):
     s += ']'
     print(s)
 
-
-
-def test_dist_estimation(n, d=0.1):
-
-    matrix = RateMatrix.instantiate('JTT')
-    count_matrix = matrix.sample_count_matrix(n, [d])
-
-    for dist in [0.8*d, 0.9*d, 0.99*d,  d, 1.01*d, 1.1*d, 1.2*d]:
-        log_likelihood = matrix.log_likelihood_at_t(count_matrix, dist)
-        deriv = matrix._likelihood_derivative_at_t(count_matrix, dist)
-        print(f'log L(N | d={dist}) = {log_likelihood} \t d/dt log L(d) = {deriv}')
-
-    print()
-    kimura =  RateMatrix.kimura_distance(count_matrix)
-    kimura_loglikelihood =  matrix.log_likelihood_at_t(count_matrix, kimura)
-    print(f'Kimura heuristic: {kimura:.3}  log(L) = {kimura_loglikelihood}')
-
-    my_res = matrix.ml_distance_estimate('A', 'B', count_matrix)
-    my_loglikelihood = matrix.log_likelihood_at_t(count_matrix, my_res)
-    print(f'My N-R:          {my_res:.3}  log(L) = {my_loglikelihood}')
-
-    # brent_res = M.ml_distance_estimate_brent('A', 'B', count_matrix)
-    # brentL = M.log_likelihood_at_t(count_matrix, brent_res)
-    # print(f'SciPy Brent:     {brent_res:.3}  log(L) = {brentL}')
-
-    secant_res = matrix.ml_distance_estimate_secant('A', 'B', count_matrix)
-    secant_loglikelihood = matrix.log_likelihood_at_t(count_matrix, secant_res)
-    print(f'SciPy secant:    {secant_res:.3}  log(L) = {secant_loglikelihood}')
 
 
 def __setup_good_print_options():
