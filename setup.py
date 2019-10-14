@@ -54,10 +54,10 @@ setuptools.setup(
         'numpy',
         'console_progressbar>=1.1.2'
     ],
-    classifiers=(
+    classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-    ),
+    ],
 )
