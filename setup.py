@@ -28,9 +28,6 @@ with open("README.md", "r") as fh:
         long_description += line
 
 
-with open('modelmatcher/version.py') as fh:
-    exec(fh.read())
-
 if sys.version_info.major < 3:
     sys.exit('\n'
              'Sorry, Python 2 is not supported\n'
