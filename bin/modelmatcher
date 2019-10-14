@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+import random
 import sys
 import numpy as np
 from console_progressbar import ProgressBar
@@ -106,16 +107,30 @@ def compute_aa_frequencies(slist):
 
 import itertools as it
 
-def msa_to_count_matrix(msa, verbose=False):
+def msa_to_count_matrix(msa, sample_size=0, verbose=False):
     '''
     Return a normalised count matrix, $F$,  and a frequency vector,
     $\pi$, based on the input MSA.
+
+    If sample_size is 0, then every sequence pair will be considered,
+    otherwise that many pairs will be drawn randomly (uniformly, without 
+    replacement) for the count matrix.
+
+    A symmetriced matrix and the observed amino acid frequences (from
+    all sequences) are returned.
     '''
 
     if verbose:
         print('Scanning sequences', file=sys.stderr)
     sequences = convert_sequences(msa)
     frequencies = compute_aa_frequencies(sequences)
+
+    seq_pairs = list(it.combinations(sequences, 2))
+    if sample_size > 0:
+        try:
+            seq_pairs = random.sample(seq_pairs, sample_size)
+        except ValueError:
+            raise ValueError(f'Cannot sample {sample_size} sequence pairs from input MSA')
 
     if verbose:
         n_seqs = len(sequences)
@@ -124,7 +139,7 @@ def msa_to_count_matrix(msa, verbose=False):
 
     m_sum = np.zeros((20, 20))
     i=0
-    for a, b in it.combinations(sequences, 2):
+    for a, b in seq_pairs:
         add_to_count_matrix(m_sum, a, b)
         if verbose:
             i += 1
@@ -235,8 +250,12 @@ def main(args):
         print(f"Error: No alignment file '{args.infile}' was found. Aborting.", file=sys.stderr)
         sys.exit(1)
         
+    try:
+        N, amino_acid_freqs = msa_to_count_matrix(msa, args.sample_size, args.verbose)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        print(f'Error occurred in {args.infile}.', file=sys.stderr)
 
-    N, amino_acid_freqs = msa_to_count_matrix(msa, args.verbose)
     n_observations = int(np.sum(N))
     F = N / n_observations
     if args.verbose:
@@ -371,15 +390,15 @@ def output_mrbayes_choice(sorted_analysis):
     '''
     # MrBayes models
     # Note that "jones" means "JTT". We need to map the modelmatcher names to the names used by MrBayes
-    mrbayes_models={'JTT':'jones', 'Dayhoff':'dayhoff', 'MtREV':'mtrev', 'MtMAM':'mtmam', 'WAG':'wag', 'RtREV':'rtrev', 'cpREV':'cprev', 'VT':'vt', 'BLOSUM62':'blosum', 'LG':'lg'}
+    mrbayes_models={'JTT':'Jones', 'Dayhoff':'Dayhoff', 'MtREV':'Mtrev', 'MtMAM':'Mtmam', 'WAG':'Wag', 'RtREV':'Rtrev', 'cpREV':'Cprev', 'VT':'Vt', 'BLOSUM62':'Blosum', 'LG':'LG'}
     restriction = list(filter(lambda triple: triple[1] == '' and triple[0] in mrbayes_models, sorted_analysis))
     chosen_model = restriction[0]
     print(chosen_model[0])
 
 
 
-if __name__ == '__main__':
-    try:
+try:
+    if __name__ == '__main__':
         # For convenience, set some print options for numpy
         np.set_printoptions(precision=3)
         np.set_printoptions(suppress=True)
@@ -418,6 +437,8 @@ Example usage:
                         help='Add the model given in the file to the comparisons.')
         ap.add_argument('-nf', '--no-F-testing', action='store_true',
                         help='Do not try +F models, i.e., do not test with amino acid frequencies estimated from the MSA.')
+        ap.add_argument('-s', '--sample-size', type=int, default=0, metavar='int',
+                        help='For alignments with many sequences, decide on an upper bound of sequence pairs to use from the MSA. The computational complexity grows quadratically in the number of sequences, so a choice of 5000 bounds the growth for MSAs with more than 100 sequence.')
         ap.add_argument('-of', '--output_format', default='tabular',
                         choices=['tabular', 'json', 'iqtree', 'raxml', 'phyml', 'mrbayes'],
                         help='Choose output format. Tabular format is default. JSON is for convenient later parsing, with some additional meta-data added. For one-line output convenient for immediate use by inference tools, consider raxml and similar choices. Note that the IQTREE, PhyML, and MrBayes options are restricted to their implemented models. Although PhyML supports the +F models (using the "-f e" option), this is not reflected in the output from "modelmatcher -of phyml ..." at this time.')
@@ -427,5 +448,5 @@ Example usage:
                         help='Output progress information')
         args = ap.parse_args()
         main(args)
-    except KeyboardInterrupt:
-        sys.exit()
+except KeyboardInterrupt:
+    sys.exit()
