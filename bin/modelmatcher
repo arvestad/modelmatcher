@@ -11,6 +11,7 @@ from Bio import AlignIO
 
 from modelmatcher.models import RateMatrix
 from modelmatcher.model_io import read_model
+from modelmatcher.version import __version__
 
 def guess_format(filename):
     '''
@@ -446,6 +447,7 @@ Example usage:
                         help='Output a list of models implemented in modelmatcher, then exit.')
         ap.add_argument('--verbose', action='store_true',
                         help='Output progress information')
+        ap.add_argument('--version', action='version', version="%(prog)s " + __version__)
         args = ap.parse_args()
         main(args)
 except KeyboardInterrupt:
