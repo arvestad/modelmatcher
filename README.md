@@ -37,6 +37,12 @@ Optional options:
                         Add the model given in the file to the comparisons.
   -nf, --no-F-testing   Do not try +F models, i.e., do not test with amino
                         acid frequencies estimated from the MSA.
+  -s int, --sample-size int
+                        For alignments with many sequences, decide on an upper
+                        bound of sequence pairs to use from the MSA. The
+                        computational complexity grows quadratically in the
+                        number of sequences, so a choice of 5000 bounds the
+                        growth for MSAs with more than 100 sequence.
   -of {tabular,json,iqtree,raxml,phyml,mrbayes}, --output_format {tabular,json,iqtree,raxml,phyml,mrbayes}
                         Choose output format. Tabular format is default. JSON
                         is for convenient later parsing, with some additional
@@ -47,7 +53,10 @@ Optional options:
                         Although PhyML supports the +F models (using the "-f
                         e" option), this is not reflected in the output from
                         "modelmatcher -of phyml ..." at this time.
+  --list-models         Output a list of models implemented in modelmatcher,
+                        then exit.
   --verbose             Output progress information
+  --version
 ```
 
 
