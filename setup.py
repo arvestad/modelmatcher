@@ -50,7 +50,6 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/arvestad/modelmatcher",
-#    test_suite = "tests",
     packages=setuptools.find_packages(),
     python_requires='>=3.2',
     install_requires=[
