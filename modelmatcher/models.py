@@ -48,7 +48,6 @@ class RateMatrix:
     def combine_models(m1, m2):
         new_model = RateMatrix(f'avg({m1.name},{m2.name})')
         new_model.Q = 0.5 * (m1.Q + m2.Q)
-#        new_model.Q = m1.Q
         new_model.freq = 0.5 * (m1.freq + m2.freq) # The $\pi$ vector
 
         # Now need new R matrix. Use that $r_{ij} = q_{ij} / \pi_j$
