@@ -2,6 +2,14 @@
 
 ## 1.1.4
 
+* Added --version
+* Corrected MrBayes model names
+* Implemented the --sample-size option, to offer a limit to the number of sequence pairs that are
+  consider, and avoid a O(n^2L) trap in favor of O(L) behaviour.
+* Started using SonarCloud.com
+* Improved setup.py
+* Changed identifiers to follow PEP-8
+* A first unit test has been implemented.
 
 ## 1.1.3
 
