@@ -118,7 +118,7 @@ def msa_to_count_matrix(msa, sample_size=0, verbose=False):
     replacement) for the count matrix.
 
     A symmetriced matrix and the observed amino acid frequences (from
-    all sequences) are returned.
+    all sequences) are returned. Also: the actual sample size is returned.
     '''
 
     if verbose:
@@ -128,15 +128,18 @@ def msa_to_count_matrix(msa, sample_size=0, verbose=False):
 
     seq_pairs = list(it.combinations(sequences, 2))
     if sample_size > 0:
-        try:
-            seq_pairs = random.sample(seq_pairs, sample_size)
-        except ValueError:
-            raise ValueError(f'Cannot sample {sample_size} sequence pairs from input MSA')
+        n_pairs = len(seq_pairs)
+        if sample_size > n_pairs:
+            if verbose:
+                print(f'{sample_size} samples requested, but can only provide {n_pairs} because of the number of sequences.', file=sys.stderr)
+            sample_size = n_pairs
+        seq_pairs = random.sample(seq_pairs, sample_size)
+    else:
+        sample_size = len(seq_pairs)
 
     if verbose:
         n_seqs = len(sequences)
-        n_pairs = n_seqs * (n_seqs - 1) / 2
-        pb = ProgressBar(total=n_pairs, prefix='Counting AA pairs:', suffix='', decimals=0, length=50, fill='+', zfill=' ')
+        pb = ProgressBar(total=sample_size, prefix='Counting AA pairs:', suffix='', decimals=0, length=50, fill='+', zfill=' ')
 
     m_sum = np.zeros((20, 20))
     i=0
@@ -150,7 +153,7 @@ def msa_to_count_matrix(msa, sample_size=0, verbose=False):
         print()
 
     symmetric = np.add(m_sum, m_sum.T)
-    return symmetric, frequencies
+    return symmetric, frequencies, sample_size
 
 
 def diagonalize_with_model(m, Q, freq_vec=None):
@@ -252,7 +255,7 @@ def main(args):
         sys.exit(1)
         
     try:
-        N, amino_acid_freqs = msa_to_count_matrix(msa, args.sample_size, args.verbose)
+        N, amino_acid_freqs, sample_size = msa_to_count_matrix(msa, args.sample_size, args.verbose)
     except ValueError as e:
         print(e, file=sys.stderr)
         print(f'Error occurred in {args.infile}.', file=sys.stderr)
@@ -276,7 +279,7 @@ def main(args):
 
     sorted_analysis = sorted(diffs, key = lambda d: d[2])
     if args.output_format == 'json':
-        output_json(sorted_analysis, n_observations, args.infile, len(msa))
+        output_json(sorted_analysis, n_observations, args.infile, len(msa), args.sample_size, sample_size)
     elif args.output_format == 'tabular':
         output_tabular(sorted_analysis)
     elif args.output_format == 'raxml':
@@ -291,15 +294,22 @@ def main(args):
         raise Exception('Bug: given output format is not implemented')
 
 
-def output_json(sorted_analysis, n_observations, filename, n_seqs):
+def output_json(sorted_analysis, n_observations, filename, n_seqs, requested_sample_size, actual_sample_size):
     '''
     Write the analysis in JSON format to stdout.
     '''
     model_ranking = list(map(lambda triple: (triple[0]+triple[1], triple[2]), sorted_analysis))
     simple_model_ranking = list(map(lambda triple: (triple[0], triple[2]), filter(lambda triple: triple[1]=='', sorted_analysis)))
+    subsampling = False
+    if requested_sample_size > 0:
+        subsampling = {
+            "requested_sample_size": requested_sample_size,
+            "actual_sample_size": actual_sample_size
+            }
     json_data = {"n_observations": n_observations,
                  "infile": filename,
                  "n_seqs": n_seqs,
+                 "subsampling": subsampling,
                  "model_ranking": model_ranking,
                  "simple_model_ranking": simple_model_ranking # Without the +F models
     }

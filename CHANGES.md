@@ -1,5 +1,14 @@
 # Changes to modelmatcher
 
+## 1.2
+
+* Last version should have increased the minor version number (because of new feature), so bumping
+  that number now instead.
+* It is no longer an error to request more samples than there sequence pairs. It is just limited to
+  the number of available pairs.
+* Sampling information is now added to JSON output.
+
+
 ## 1.1.4
 
 * Added --version
