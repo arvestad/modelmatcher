@@ -1,3 +1,4 @@
+[![PyPI version](https://badge.fury.io/py/modelmatcher.svg)](https://badge.fury.io/py/modelmatcher)
 # modelmatcher: Rapid identification of evolutionary models
 
 This tool reads multiple sequence alignments and determines a suitable sequence
